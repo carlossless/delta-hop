@@ -1810,6 +1810,7 @@ Elm.DeltaHop.make = function (_elm) {
    _E = _N.Error.make(_elm),
    $moduleName = "DeltaHop",
    $Basics = Elm.Basics.make(_elm),
+   $Color = Elm.Color.make(_elm),
    $Graphics$Element = Elm.Graphics.Element.make(_elm),
    $Graphics$Input = Elm.Graphics.Input.make(_elm),
    $Html = Elm.Html.make(_elm),
@@ -1843,6 +1844,21 @@ Elm.DeltaHop.make = function (_elm) {
                                                                                                                                                                      ,uid: typeof v.uid === "number" ? v.uid : _E.raise("invalid input, expecting JSNumber but got " + v.uid)
                                                                                                                                                                      ,visibility: typeof v.visibility === "string" || typeof v.visibility === "object" && v.visibility instanceof String ? v.visibility : _E.raise("invalid input, expecting JSString but got " + v.visibility)} : _E.raise("invalid input, expecting JSObject [\"seconds\",\"timers\",\"field\",\"uid\",\"visibility\"] but got " + v));
    });
+   var prependZero = function (s) {
+      return _U.cmp($String.length(s),
+      2) < 0 ? _L.append("0",s) : s;
+   };
+   var timeString = function (s) {
+      return _L.append(prependZero($String.show($Basics.floor(s / 3600000))),
+      _L.append(":",
+      _L.append(prependZero($String.show($Basics.floor(A2($Color.fmod,
+      s,
+      3600000) / 60000))),
+      _L.append(":",
+      prependZero($String.show($Basics.floor(A2($Color.fmod,
+      s,
+      60000) / 1000)))))));
+   };
    var infoFooter = A2($Html$Tags.footer,
    _L.fromArray([$Html$Attributes.id("info")]),
    _L.fromArray([A2($Html$Tags.p,
@@ -1865,6 +1881,14 @@ Elm.DeltaHop.make = function (_elm) {
       $Html.getKeyboardEvent),
       handle,
       $Basics.always(value));
+   });
+   var stopTimer = F2(function (s,
+   t) {
+      return _U.eq(t.running,
+      true) ? _U.replace([["running"
+                          ,false]
+                         ,["stopTime",s]],
+      t) : t;
    });
    var ChangeVisibility = function (a) {
       return {ctor: "ChangeVisibility"
@@ -1922,7 +1946,7 @@ Elm.DeltaHop.make = function (_elm) {
                    _L.fromArray([$Html.text("delta-hop")]))
                    ,A2($Html$Tags.input,
                    _L.fromArray([$Html$Attributes.id("new-todo")
-                                ,$Html$Attributes.placeholder("What needs to be done?")
+                                ,$Html$Attributes.placeholder("What will you do now?")
                                 ,$Html$Attributes.autofocus(true)
                                 ,$Html$Attributes.value(timer)
                                 ,$Html$Attributes.name("newTodo")
@@ -1936,11 +1960,11 @@ Elm.DeltaHop.make = function (_elm) {
                                 Add(s))]),
                    _L.fromArray([]))]));
    });
-   var todoItem = F2(function (s,
-   todo) {
+   var timerItem = F2(function (s,
+   timer) {
       return function () {
-         var className = _L.append(todo.completed ? "completed " : "",
-         todo.editing ? "editing" : "");
+         var className = _L.append(timer.completed ? "completed " : "",
+         timer.editing ? "editing" : "");
          return A2($Html$Tags.li,
          _L.fromArray([$Html$Attributes.$class(className)]),
          _L.fromArray([A2($Html$Tags.div,
@@ -1948,14 +1972,14 @@ Elm.DeltaHop.make = function (_elm) {
                       _L.fromArray([A2($Html$Tags.input,
                                    _L.fromArray([$Html$Attributes.$class("toggle")
                                                 ,$Html$Attributes.type$("checkbox")
-                                                ,$Html$Attributes.checked(todo.completed)
+                                                ,$Html$Attributes.checked(timer.running)
                                                 ,A2($Html$Events.onclick,
                                                 actions.handle,
                                                 function (_v0) {
                                                    return function () {
                                                       return A3(StartStop,
-                                                      todo.id,
-                                                      $Basics.not(todo.running),
+                                                      timer.id,
+                                                      $Basics.not(timer.running),
                                                       s);
                                                    }();
                                                 })]),
@@ -1966,35 +1990,37 @@ Elm.DeltaHop.make = function (_elm) {
                                    function (_v2) {
                                       return function () {
                                          return A2(EditingTimer,
-                                         todo.id,
+                                         timer.id,
                                          true);
                                       }();
                                    })]),
-                                   _L.fromArray([$Html.text($String.show(s))]))
+                                   _L.fromArray([$Html.text(_L.append(timer.description,
+                                   _L.append(" ",
+                                   timeString(timer.running ? s - timer.startTime : timer.stopTime - timer.startTime))))]))
                                    ,A2($Html$Tags.button,
                                    _L.fromArray([$Html$Attributes.$class("destroy")
                                                 ,A2($Html$Events.onclick,
                                                 actions.handle,
-                                                $Basics.always(Delete(todo.id)))]),
+                                                $Basics.always(Delete(timer.id)))]),
                                    _L.fromArray([]))]))
                       ,A2($Html$Tags.input,
                       _L.fromArray([$Html$Attributes.$class("edit")
-                                   ,$Html$Attributes.value(todo.description)
+                                   ,$Html$Attributes.value(timer.description)
                                    ,$Html$Attributes.name("title")
                                    ,$Html$Attributes.id(_L.append("todo-",
-                                   $String.show(todo.id)))
+                                   $String.show(timer.id)))
                                    ,A4($Html.on,
                                    "input",
                                    $Html.getValue,
                                    actions.handle,
-                                   UpdateTimer(todo.id))
+                                   UpdateTimer(timer.id))
                                    ,A2($Html$Events.onblur,
                                    actions.handle,
-                                   A2(EditingTimer,todo.id,false))
+                                   A2(EditingTimer,timer.id,false))
                                    ,A2(onEnter,
                                    actions.handle,
                                    A2(EditingTimer,
-                                   todo.id,
+                                   timer.id,
                                    false))]),
                       _L.fromArray([]))]));
       }();
@@ -2018,7 +2044,7 @@ Elm.DeltaHop.make = function (_elm) {
                   case "Completed":
                   return todo.completed;}
                _E.Case($moduleName,
-               "between lines 194 and 199");
+               "between lines 208 and 213");
             }();
          };
          return A2($Html$Tags.section,
@@ -2045,7 +2071,7 @@ Elm.DeltaHop.make = function (_elm) {
                       ,A2($Html$Tags.ul,
                       _L.fromArray([$Html$Attributes.id("todo-list")]),
                       A2($List.map,
-                      todoItem(s),
+                      timerItem(s),
                       A2($List.filter,
                       isVisible,
                       timers)))]));
@@ -2156,7 +2182,7 @@ Elm.DeltaHop.make = function (_elm) {
               _v7._1,
               A2(view,state,s)));}
          _E.Case($moduleName,
-         "on line 317, column 23 to 74");
+         "on line 331, column 23 to 74");
       }();
    });
    var focus = $Native$Ports.portOut("focus",
@@ -2171,7 +2197,7 @@ Elm.DeltaHop.make = function (_elm) {
                return _L.append("#todo-",
                  $String.show(_v11._0));}
             _E.Case($moduleName,
-            "on line 337, column 43 to 62");
+            "on line 357, column 43 to 62");
          }();
       };
       var needsFocus = function (act) {
@@ -2220,7 +2246,9 @@ Elm.DeltaHop.make = function (_elm) {
                                ,state.uid + 1]
                               ,["field",""]
                               ,["timers"
-                               ,$String.isEmpty(state.field) ? state.timers : _L.append(state.timers,
+                               ,$String.isEmpty(state.field) ? state.timers : _L.append(A2($List.map,
+                               stopTimer(action._0),
+                               state.timers),
                                _L.fromArray([A3(newTimer,
                                state.field,
                                state.uid,
@@ -2302,7 +2330,12 @@ Elm.DeltaHop.make = function (_elm) {
                                              ,action._1 ? 0 : action._2]
                                             ,["startTime"
                                              ,action._1 ? action._2 - (t.stopTime - t.startTime) : t.startTime]],
-                    t) : t : t;
+                    t) : t : _U.eq(t.running,
+                    true) ? _U.replace([["running"
+                                        ,false]
+                                       ,["stopTime",action._2]
+                                       ,["startTime",t.startTime]],
+                    t) : t;
                  };
                  return _U.replace([["timers"
                                     ,A2($List.map,
@@ -2329,7 +2362,7 @@ Elm.DeltaHop.make = function (_elm) {
                  state);
               }();}
          _E.Case($moduleName,
-         "between lines 102 and 150");
+         "between lines 109 and 164");
       }();
    });
    var state = A3($Signal.foldp,
@@ -2402,12 +2435,13 @@ Elm.DeltaHop.make = function (_elm) {
                           ,Check: Check
                           ,CheckAll: CheckAll
                           ,ChangeVisibility: ChangeVisibility
+                          ,stopTimer: stopTimer
                           ,step: step
                           ,view: view
                           ,onEnter: onEnter
                           ,timerEntry: timerEntry
                           ,timerList: timerList
-                          ,todoItem: todoItem
+                          ,timerItem: timerItem
                           ,controls: controls
                           ,visibilitySwap: visibilitySwap
                           ,infoFooter: infoFooter
@@ -2415,7 +2449,9 @@ Elm.DeltaHop.make = function (_elm) {
                           ,scene: scene
                           ,state: state
                           ,startingState: startingState
-                          ,actions: actions};
+                          ,actions: actions
+                          ,timeString: timeString
+                          ,prependZero: prependZero};
    return _elm.DeltaHop.values;
 };Elm.Html = Elm.Html || {};
 Elm.Html.Tags = Elm.Html.Tags || {};

@@ -96,6 +96,13 @@ data Action
     | CheckAll Bool
     | ChangeVisibility String
 
+stopTimer : Float -> Timer -> Timer
+stopTimer s t = if t.running == True then { 
+                t | running <- False,
+                    stopTime <- s
+                    } 
+                    else t
+
 -- How we step the state forward for any given action
 step : Action -> State -> State
 step action state =
@@ -108,7 +115,7 @@ step action state =
                   , field <- ""
                   , timers <- if String.isEmpty state.field
                                then state.timers
-                               else state.timers ++ [newTimer state.field state.uid currentTime]
+                               else map (stopTimer currentTime) state.timers ++ [newTimer state.field state.uid currentTime]
           }
 
       StartStop id isRunning currentTime ->
@@ -119,7 +126,14 @@ step action state =
                     startTime <- if isRunning then currentTime - (t.stopTime - t.startTime) else t.startTime
               }
               else t
-          else t in  { state | timers <- map update state.timers }
+          else
+              if t.running == True then {
+                t | running <- False,
+                    stopTime <- currentTime,
+                    startTime <- t.startTime
+              }
+              else t
+           in  { state | timers <- map update state.timers }
           
       UpdateField str ->
           { state | field <- str }
@@ -178,7 +192,7 @@ timerEntry timer s =
       [ h1 [] [ text "delta-hop" ]
       , input
           [ id "new-todo"
-          , placeholder "What needs to be done?"
+          , placeholder "What will you do now?"
           , autofocus True
           , value timer
           , name "newTodo"
@@ -217,13 +231,13 @@ timerList visibility timers s =
           [ text "Mark all as complete" ]
       , ul
           [ id "todo-list" ]
-          (map (todoItem s) (filter isVisible timers))
+          (map (timerItem s) (filter isVisible timers))
       ]
 
-todoItem : Float -> Timer -> Html
-todoItem s todo =
-    let className = (if todo.completed then "completed " else "") ++
-                    (if todo.editing   then "editing"    else "")
+timerItem : Float -> Timer -> Html
+timerItem s timer =
+    let className = (if timer.completed then "completed " else "") ++
+                    (if timer.editing   then "editing"    else "")
     in
 
     li
@@ -233,27 +247,27 @@ todoItem s todo =
           [ input
               [ class "toggle"
               , type' "checkbox"
-              , checked todo.completed
-              , onclick actions.handle (\_ -> StartStop todo.id (not todo.running) s)
+              , checked timer.running
+              , onclick actions.handle (\_ -> StartStop timer.id (not timer.running) s)
               ]
               []
           , label
-              [ ondblclick actions.handle (\_ -> EditingTimer todo.id True) ]
-              [ text <| show <| s ]
+              [ ondblclick actions.handle (\_ -> EditingTimer timer.id True) ]
+              [ text <| timer.description ++ " " ++ (timeString (if timer.running then s - timer.startTime else timer.stopTime - timer.startTime)) ]
           , button
               [ class "destroy"
-              , onclick actions.handle (always (Delete todo.id))
+              , onclick actions.handle (always (Delete timer.id))
               ]
               []
           ]
       , input
           [ class "edit"
-          , value todo.description
+          , value timer.description
           , name "title"
-          , id ("todo-" ++ show todo.id)
-          , on "input" getValue actions.handle (UpdateTimer todo.id)
-          , onblur actions.handle (EditingTimer todo.id False)
-          , onEnter actions.handle (EditingTimer todo.id False)
+          , id ("todo-" ++ show timer.id)
+          , on "input" getValue actions.handle (UpdateTimer timer.id)
+          , onblur actions.handle (EditingTimer timer.id False)
+          , onEnter actions.handle (EditingTimer timer.id False)
           ]
           []
       ]
@@ -326,6 +340,12 @@ startingState = Maybe.maybe emptyState identity getStorage
 -- actions from user input
 actions : Input.Input Action
 actions = Input.input NoOp
+
+timeString : Float -> String
+timeString s = (prependZero (show <| (floor (s / 3600000)))) ++ ":" ++ (prependZero (show <| (floor ((fmod s 3600000) / 60000)))) ++ ":" ++ (prependZero (show <| ((floor ((fmod s 60000) / 1000)))))
+
+prependZero : String -> String
+prependZero s = if (String.length s) < 2 then "0" ++ s else s
 
 port focus : Signal String
 port focus =
