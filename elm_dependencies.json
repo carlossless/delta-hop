@@ -1,0 +1,12 @@
+{
+    "version": "0.1",
+    "summary": "delta-hop the useful time-tracker!",
+    "description": "",
+    "license": "MIT",
+    "exposed-modules": [],
+    "elm-version": "0.13",
+    "dependencies": {
+        "evancz/elm-html": "0.2"
+    },
+    "repository": "https://github.com/evancz/elm-todomvc.git"
+}
