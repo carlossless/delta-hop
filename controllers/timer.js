@@ -17,7 +17,7 @@ exports.setup = function(app) {
 				res.send(err);
 			}
 			res.json(timers[0]);
-		})
+		});
 	});
 
 	app.put('/timers/:id', function(req, res) {
@@ -34,9 +34,9 @@ exports.setup = function(app) {
 				if (err) {
 					res.send(err);
 				}
-				res.json({ id: timer._id });
+				res.json(timer);
 			});
-		})
+		});
 	});
 
 	app.post('/timers/', function(req, res) {
@@ -54,4 +54,12 @@ exports.setup = function(app) {
 		});
 	});
 	
+	app.delete('/timers/:id', function(req, res) {
+		Timer.remove({ _id: req.params.id }, function (err, timers) {
+    		if (err) {
+				res.send(err);
+			}	
+			res.json({ id: req.params.id });
+		});
+	});
 }

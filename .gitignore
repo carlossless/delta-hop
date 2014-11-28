@@ -1,4 +1,5 @@
 node_modules/
-cache/
+elm/cache/
 db/
-elm_dependencies/
+elm/elm_dependencies/
+js/delta-hop.js
