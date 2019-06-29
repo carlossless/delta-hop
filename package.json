@@ -9,7 +9,7 @@
     "ejs": "^1.0.0",
     "express": "4.x",
     "freshbooks": "0.x",
-    "mongoose": "3.x"
+    "mongoose": "5.x"
   },
   "devDependencies": {
     "expect.js": "0.3.1",
