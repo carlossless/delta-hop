@@ -5,7 +5,7 @@
   "private": true,
   "dependencies": {
     "body-parser": "1.x",
-    "co": "3.x",
+    "co": "4.x",
     "ejs": "^1.0.0",
     "express": "4.x",
     "freshbooks": "0.x",
