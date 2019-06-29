@@ -8,7 +8,7 @@
     "co": "3.x",
     "ejs": "^1.0.0",
     "express": "4.x",
-    "freshbooks": "0.x",
+    "freshbooks": "2.x",
     "mongoose": "3.x"
   },
   "devDependencies": {
